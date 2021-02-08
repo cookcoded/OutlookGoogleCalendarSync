@@ -635,7 +635,7 @@ namespace OutlookGoogleCalendarSync.Forms {
                     DateTime utcNow = DateTime.UtcNow;
                     DateTime quotaReset = utcNow.Date.AddHours(8).AddMinutes(utcNow.Minute);
                     if ((quotaReset - utcNow).Ticks < 0) quotaReset = quotaReset.AddDays(1);
-                    int delayHours = (int)(quotaReset - DateTime.Now).TotalHours + 1;
+                    int delayHours = (int)(quotaReset - utcNow).TotalHours + 1;
                     note =  "Google's daily free calendar quota was exhausted!" + cr +
                             "  Syncs were delayed "+ delayHours +" hours until 08:00GMT  " + cr +
                             " Get yourself guaranteed quota for just £1/month.";
