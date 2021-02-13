@@ -634,10 +634,20 @@ namespace OutlookGoogleCalendarSync.Forms {
                 case SyncNotes.QuotaExhaustedPreviously:
                     DateTime utcNow = DateTime.UtcNow;
                     DateTime quotaReset = utcNow.Date.AddHours(8).AddMinutes(utcNow.Minute);
-                    if ((quotaReset - utcNow).Ticks < 0) quotaReset = quotaReset.AddDays(1);
-                    int delayHours = (int)(quotaReset - utcNow).TotalHours + 1;
+                    if ((utcNow - quotaReset).Ticks < -TimeSpan.TicksPerMinute) {
+                        //Successful sync before new quota at 8GMT
+                        SetControlPropertyThreadSafe(tbSyncNote, "Visible", false);
+                        SetControlPropertyThreadSafe(panelSyncNote, "Visible", false);
+                        show = false;
+                        break;
+                    }
+                    int delayHours = (int)(DateTime.Now - Settings.Instance.LastSyncDate).TotalHours;
+                    String delay = delayHours + " hours";
+                    if (delayHours == 0) {
+                        delay = (int)(DateTime.Now - Settings.Instance.LastSyncDate).TotalMinutes + " mins";
+                    }
                     note =  "Google's daily free calendar quota was exhausted!" + cr +
-                            "  Syncs were delayed "+ delayHours +" hours until 08:00GMT  " + cr +
+                            "It caused "+ delay +" delay between successful syncs." + cr +
                             " Get yourself guaranteed quota for just £1/month.";
                     url = urlStub + "OGCS Premium for " + Settings.Instance.GaccountEmail;
 
@@ -648,14 +658,14 @@ namespace OutlookGoogleCalendarSync.Forms {
                     bwHideNote.DoWork += new System.ComponentModel.DoWorkEventHandler(
                         delegate (object o, System.ComponentModel.DoWorkEventArgs args) {
                             try {
-                                DateTime showUntil = DateTime.Now.AddHours((int)args.Argument + 3);
+                                DateTime showUntil = DateTime.Now.AddHours(3);
                                 while (DateTime.Now < showUntil) {
                                     System.Threading.Thread.Sleep(60 * 1000);
                                 }
                                 SyncNote(SyncNotes.QuotaExhaustedPreviously, null, false);
                             } catch { }
                         });
-                    bwHideNote.RunWorkerAsync(delayHours);
+                    bwHideNote.RunWorkerAsync();
 
                     break;
                 case SyncNotes.RecentSubscription:

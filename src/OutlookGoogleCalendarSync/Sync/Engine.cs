@@ -168,7 +168,6 @@ namespace OutlookGoogleCalendarSync.Sync {
                     return;
                 }
                 GoogleOgcs.Calendar.APIlimitReached_attendee = false;
-                mainFrm.SyncNote(Forms.Main.SyncNotes.QuotaExhaustedInfo, null, false);
                 mainFrm.bSyncNow.Text = "Stop Sync";
                 mainFrm.NotificationTray.UpdateItem("sync", "&Stop Sync");
 
@@ -274,6 +273,7 @@ namespace OutlookGoogleCalendarSync.Sync {
                     Settings.Instance.CompletedSyncs++;
                     consecutiveSyncFails = 0;
                     mainFrm.Console.Update("Sync finished!", Console.Markup.checkered_flag);
+                    mainFrm.SyncNote(Forms.Main.SyncNotes.QuotaExhaustedInfo, null, false);
                 } else if (syncResult == SyncResult.AutoRetry) {
                     consecutiveSyncFails++;
                     mainFrm.Console.Update("Sync encountered a problem and did not complete successfully.<br/>" + consecutiveSyncFails + " consecutive syncs failed.", Console.Markup.error, notifyBubble: true);
