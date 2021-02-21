@@ -623,6 +623,7 @@ namespace OutlookGoogleCalendarSync.Forms {
                 syncNote = SyncNotes.QuotaExhaustedPreviously;
                 show = true;
             }
+            String existingNote = GetControlPropertyThreadSafe(tbSyncNote, "Text") as String;
 
             switch (syncNote) {
                 case SyncNotes.QuotaExhaustedInfo:
@@ -647,25 +648,33 @@ namespace OutlookGoogleCalendarSync.Forms {
                         delay = (int)(DateTime.Now - Settings.Instance.LastSyncDate).TotalMinutes + " mins";
                     }
                     note =  "Google's daily free calendar quota was exhausted!" + cr +
-                            "It caused "+ delay +" delay between successful syncs." + cr +
+                            "    Previous successful sync was "+ delay +" ago." + cr +
                             " Get yourself guaranteed quota for just £1/month.";
                     url = urlStub + "OGCS Premium for " + Settings.Instance.GaccountEmail;
 
-                    //Display the note for 3 hours after the quota has been renewed
-                    System.ComponentModel.BackgroundWorker bwHideNote = new System.ComponentModel.BackgroundWorker();
-                    bwHideNote.WorkerReportsProgress = false;
-                    bwHideNote.WorkerSupportsCancellation = true;
-                    bwHideNote.DoWork += new System.ComponentModel.DoWorkEventHandler(
-                        delegate (object o, System.ComponentModel.DoWorkEventArgs args) {
-                            try {
-                                DateTime showUntil = DateTime.Now.AddHours(3);
-                                while (DateTime.Now < showUntil) {
-                                    System.Threading.Thread.Sleep(60 * 1000);
-                                }
-                                SyncNote(SyncNotes.QuotaExhaustedPreviously, null, false);
-                            } catch { }
-                        });
-                    bwHideNote.RunWorkerAsync();
+                    if (!show && existingNote.Contains("free calendar quota was exhausted")) {
+                        log.Debug("Removing quota exhausted advisory notice.");
+                        SetControlPropertyThreadSafe(tbSyncNote, "Visible", show);
+                        SetControlPropertyThreadSafe(panelSyncNote, "Visible", show);
+                    } else {
+                        //Display the note for 3 hours after the quota has been renewed
+                        System.ComponentModel.BackgroundWorker bwHideNote = new System.ComponentModel.BackgroundWorker();
+                        bwHideNote.WorkerReportsProgress = false;
+                        bwHideNote.WorkerSupportsCancellation = true;
+                        bwHideNote.DoWork += new System.ComponentModel.DoWorkEventHandler(
+                            delegate (object o, System.ComponentModel.DoWorkEventArgs args) {
+                                try {
+                                    DateTime showUntil = DateTime.Now.AddHours(3);
+                                log.Debug("Showing quota exhausted advisory until " + showUntil.ToString());
+                                    while (DateTime.Now < showUntil) {
+                                        System.Threading.Thread.Sleep(60 * 1000);
+                                    }
+                                    log.Debug("Quota exhausted advisory notice period ending.");
+                                    SyncNote(SyncNotes.QuotaExhaustedPreviously, null, false);
+                                } catch { }
+                            });
+                        bwHideNote.RunWorkerAsync();
+                    }
 
                     break;
                 case SyncNotes.RecentSubscription:
@@ -695,7 +704,6 @@ namespace OutlookGoogleCalendarSync.Forms {
                     url = "file://" + Program.UserFilePath;
                     break;
             }
-            String existingNote = GetControlPropertyThreadSafe(tbSyncNote, "Text") as String;
             if (note != existingNote.Replace("\n", "\r\n") && !show) return; //Trying to hide a note that isn't currently displaying
             SetControlPropertyThreadSafe(tbSyncNote, "Text", note);
             SetControlPropertyThreadSafe(tbSyncNote, "Tag", url);
